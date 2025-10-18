@@ -1,49 +1,14 @@
 <!DOCTYPE html>
 <html lang="mr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mcollections — Admin Panel</title>
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
-
-<style>
-  body { font-family:'Noto Sans Devanagari', sans-serif; background:#f3f3f3; margin:0; }
-  .box { max-width:450px; margin:40px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
-  h2 { text-align:center; color:#006400; margin-bottom:15px; }
-  input,button { width:100%; padding:10px; margin:8px 0; font-size:16px; border-radius:6px; }
-  input { border:1px solid #ccc; }
-  button { background:#006400; color:white; border:none; cursor:pointer; }
-  button:hover { background:#004d00; }
-  .msg { text-align:center; font-size:14px; color:#555; }
-</style>
-</head>
-<body>
-  <div class="box">
-    <h2>दूध संकलन - Admin Panel</h2>
-
-    <input type="number" id="farmerId" placeholder="शेतकरी आयडी (उदा. 45)" />
-    <input type="date" id="date" />
-    
-    <h3>🌞 सकाळचे दूध</h3>
-    <input type="number" id="morningLitres" placeholder="लिटर" />
-    <input type="number" id="morningRate" placeholder="दर ₹" />
-
-    <h3>🌙 रात्रीचे दूध</h3>
-    <input type="number" id="nightLitres" placeholder="लिटर" />
-    <input type="number" id="nightRate" placeholder="दर ₹" />
-
-    <button onclick="saveData()">रेकॉर्ड जोडा</button>
-    <p class="msg" id="msg"></p>
-  </div>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCollections — Admin Panel</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-  // ✅ Firebase configuration (correct details)
   const firebaseConfig = {
     apiKey: "AIzaSyDAPIylSFOKGA6Tpu8kmn2otF4L0SpQh6g",
     authDomain: "mcollections-22e3f.firebaseapp.com",
@@ -58,43 +23,67 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // ✅ Save milk data
-  window.saveData = async function(){
-    const farmerId = document.getElementById('farmerId').value.trim();
-    const date = document.getElementById('date').value;
-    const mLitres = parseFloat(document.getElementById('morningLitres').value) || 0;
-    const mRate = parseFloat(document.getElementById('morningRate').value) || 0;
-    const nLitres = parseFloat(document.getElementById('nightLitres').value) || 0;
-    const nRate = parseFloat(document.getElementById('nightRate').value) || 0;
-    const msg = document.getElementById('msg');
+  window.saveData = async function () {
+    const farmerId = document.getElementById("farmerId").value.trim();
+    const date = document.getElementById("date").value;
+    const mLitres = parseFloat(document.getElementById("morningLitres").value) || 0;
+    const mRate = parseFloat(document.getElementById("morningRate").value) || 0;
+    const nLitres = parseFloat(document.getElementById("nightLitres").value) || 0;
+    const nRate = parseFloat(document.getElementById("nightRate").value) || 0;
+    const msg = document.getElementById("msg");
 
-    if(!farmerId || !date){
-      msg.innerText = "कृपया शेतकरी आयडी व दिनांक भरा.";
+    if (!farmerId || !date) {
+      msg.innerText = "कृपया शेतकरी आयडी आणि दिनांक भरा.";
       return;
     }
+
+    msg.innerText = "जतन करत आहे...";
 
     const totalMorning = mLitres * mRate;
     const totalNight = nLitres * nRate;
 
-    msg.innerText = "रेकॉर्ड जतन करत आहे...";
-
     try {
       await set(ref(db, `farmers/${farmerId}/records/${date}`), {
-        day: { litres: mLitres, amount: totalMorning },
-        night: { litres: nLitres, amount: totalNight },
+        morning: { litres: mLitres, rate: mRate, total: totalMorning },
+        night: { litres: nLitres, rate: nRate, total: totalNight },
+        totalAmount: totalMorning + totalNight,
         payment_status: "Pending"
       });
-
-      msg.innerText = "✅ रेकॉर्ड यशस्वीरीत्या जतन केले!";
-      document.getElementById('morningLitres').value = '';
-      document.getElementById('morningRate').value = '';
-      document.getElementById('nightLitres').value = '';
-      document.getElementById('nightRate').value = '';
-    } catch (error) {
-      console.error(error);
-      msg.innerText = "❌ त्रुटी: " + error.message;
+      msg.innerText = "✅ डेटा यशस्वीरीत्या जतन केला!";
+    } catch (e) {
+      msg.innerText = "❌ त्रुटी: " + e.message;
+      console.error(e);
     }
-  }
+  };
 </script>
+
+<style>
+  body { font-family:'Noto Sans Devanagari',sans-serif; background:#f2f2f2; }
+  .box { max-width:450px; margin:40px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+  h2 { text-align:center; color:#006400; }
+  input,button { width:100%; padding:10px; margin:6px 0; font-size:16px; border-radius:6px; border:1px solid #ccc; }
+  button { background:#006400; color:#fff; border:none; cursor:pointer; }
+  button:hover { background:#004d00; }
+  #msg { text-align:center; margin-top:8px; color:#333; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h2>दूध संकलन — Admin Panel</h2>
+
+    <input type="text" id="farmerId" placeholder="शेतकरी आयडी (उदा. 45)">
+    <input type="date" id="date">
+
+    <h3>🌞 सकाळ</h3>
+    <input type="number" id="morningLitres" placeholder="लिटर">
+    <input type="number" id="morningRate" placeholder="दर ₹">
+
+    <h3>🌙 रात्र</h3>
+    <input type="number" id="nightLitres" placeholder="लिटर">
+    <input type="number" id="nightRate" placeholder="दर ₹">
+
+    <button onclick="saveData()">रेकॉर्ड जतन करा</button>
+    <p id="msg"></p>
+  </div>
 </body>
 </html>
