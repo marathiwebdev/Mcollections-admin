@@ -1,122 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>भावेश्वरी दूध संस्था Admin</title>
-  <style>
-    body {
-      font-family: "Poppins", sans-serif;
-      max-width: 500px;
-      margin: auto;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    input {
-      padding: 8px;
-      width: 100%;
-      margin-bottom: 10px;
-      border: 1px solid #aaa;
-      border-radius: 5px;
-    }
-    button {
-      padding: 10px;
-      width: 100%;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    #statusMsg {
-      color: green;
-      margin-top: 10px;
-      text-align: center;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mcollections — Admin Panel</title>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+
+<style>
+  body { font-family:'Noto Sans Devanagari', sans-serif; background:#f3f3f3; margin:0; }
+  .box { max-width:450px; margin:40px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+  h2 { text-align:center; color:#006400; margin-bottom:15px; }
+  input,button { width:100%; padding:10px; margin:8px 0; font-size:16px; border-radius:6px; }
+  input { border:1px solid #ccc; }
+  button { background:#006400; color:white; border:none; cursor:pointer; }
+  button:hover { background:#004d00; }
+  .msg { text-align:center; font-size:14px; color:#555; }
+</style>
 </head>
 <body>
-  <h1>Mcollections Admin</h1>
+  <div class="box">
+    <h2>दूध संकलन - Admin Panel</h2>
 
-  <div class="form">
-    <label>Farmer ID:</label>
-    <input type="number" id="farmerId" placeholder="Enter Farmer ID">
+    <input type="number" id="farmerId" placeholder="शेतकरी आयडी (उदा. 45)" />
+    <input type="date" id="date" />
+    
+    <h3>🌞 सकाळचे दूध</h3>
+    <input type="number" id="morningLitres" placeholder="लिटर" />
+    <input type="number" id="morningRate" placeholder="दर ₹" />
 
-    <h3>Morning Collection</h3>
-    <input type="number" id="morningLiters" placeholder="Liters">
-    <input type="number" id="morningRate" placeholder="Rate">
+    <h3>🌙 रात्रीचे दूध</h3>
+    <input type="number" id="nightLitres" placeholder="लिटर" />
+    <input type="number" id="nightRate" placeholder="दर ₹" />
 
-    <h3>Night Collection</h3>
-    <input type="number" id="nightLiters" placeholder="Liters">
-    <input type="number" id="nightRate" placeholder="Rate">
-
-    <button id="saveBtn">Save Record</button>
+    <button onclick="saveData()">रेकॉर्ड जोडा</button>
+    <p class="msg" id="msg"></p>
   </div>
 
-  <p id="statusMsg"></p>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { getAuth, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-  <!-- Firebase + Script -->
-  <script type="module">
-    // ✅ Import Firebase modules
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  // ✅ Firebase configuration (your real details)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDAPIylSFOKGA6Tpu8kmn2otF4L0SpQh6g",
+    authDomain: "mcollections-22e3f.firebaseapp.com",
+    databaseURL: "https://mcollections-22e3f-default-rtdb.firebaseio.com",
+    projectId: "mcollections-22e3f",
+    storageBucket: "mcollections-22e3f.firebasestorage.app",
+    messagingSenderId: "798498490029",
+    appId: "1:798498490029:web:86db83ee562a2d2f12e824",
+    measurementId: "G-5LEYGZJQCY"
+  };
 
-    // ✅ Your Firebase Config (Replace with your own details)
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DATABASE_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
 
-    // ✅ Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+  // Helper: convert farmer ID → email
+  function idToEmail(id){
+    return id + "@farmer.com";
+  }
 
-    // ✅ Save Record Logic
-    document.getElementById("saveBtn").addEventListener("click", async () => {
-      const farmerId = document.getElementById("farmerId").value.trim();
-      const morningLiters = document.getElementById("morningLiters").value.trim();
-      const morningRate = document.getElementById("morningRate").value.trim();
-      const nightLiters = document.getElementById("nightLiters").value.trim();
-      const nightRate = document.getElementById("nightRate").value.trim();
+  // Helper: get UID from email (if user exists)
+  async function getUserUid(email){
+    try {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.length === 0) return null;
+      // If user exists, we’ll fetch from database directly (UID is under /farmers/ with same synthetic email)
+      return email.replace('@farmer.com','');
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
 
-      if (!farmerId) {
-        alert("Please enter Farmer ID");
-        return;
-      }
+  // Save milk data
+  window.saveData = async function(){
+    const farmerId = document.getElementById('farmerId').value.trim();
+    const date = document.getElementById('date').value;
+    const mLitres = parseFloat(document.getElementById('morningLitres').value) || 0;
+    const mRate = parseFloat(document.getElementById('morningRate').value) || 0;
+    const nLitres = parseFloat(document.getElementById('nightLitres').value) || 0;
+    const nRate = parseFloat(document.getElementById('nightRate').value) || 0;
+    const msg = document.getElementById('msg');
 
-      const farmerEmail = `${farmerId}@farmers.com`;
+    if(!farmerId || !date){ msg.innerText = "कृपया शेतकरी आयडी व दिनांक भरा."; return; }
 
-      const farmerRef = ref(db, `farmers/${farmerEmail.replace(".", "_")}/milkRecords`);
-      const record = {
-        date: new Date().toLocaleDateString(),
-        morning: { liters: morningLiters, rate: morningRate },
-        night: { liters: nightLiters, rate: nightRate },
-      };
+    const email = idToEmail(farmerId);
+    msg.innerText = "रेकॉर्ड जतन करत आहे...";
 
-      try {
-        const newRecordRef = push(farmerRef);
-        await set(newRecordRef, record);
-        document.getElementById("statusMsg").textContent = "✅ Record saved successfully!";
-        // Clear fields
-        document.getElementById("morningLiters").value = "";
-        document.getElementById("morningRate").value = "";
-        document.getElementById("nightLiters").value = "";
-        document.getElementById("nightRate").value = "";
-      } catch (err) {
-        console.error(err);
-        alert("❌ Error saving record: " + err.message);
-      }
-    });
-  </script>
+    const totalMorning = mLitres * mRate;
+    const totalNight = nLitres * nRate;
+
+    try {
+      // store in farmers node (same structure as farmer app)
+      await set(ref(db, 'farmers/' + farmerId + '/records/' + date), {
+        day: { litres: mLitres, amount: totalMorning },
+        night: { litres: nLitres, amount: totalNight },
+        payment_status: "Pending"
+      });
+      msg.innerText = "✅ रेकॉर्ड यशस्वीरीत्या जतन केले!";
+      document.getElementById('morningLitres').value='';
+      document.getElementById('nightLitres').value='';
+    } catch (e) {
+      console.error(e);
+      msg.innerText = "त्रुटी आली: " + e.message;
+    }
+  }
+</script>
 </body>
 </html>
