@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>दूध संकलन — Admin Panel</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+
+<style>
+  body { font-family:'Noto Sans Devanagari',sans-serif; background:#f4f6f7; margin:0; }
+  .box { max-width:480px; margin:30px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+  h2 { text-align:center; color:#006400; margin-bottom:15px; }
+  input,select { width:100%; padding:10px; margin:8px 0; border:1px solid #ccc; border-radius:6px; font-size:16px; }
+  button { width:100%; padding:10px; background:#006400; color:#fff; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
+  button:hover { background:#004d00; }
+  #msg { text-align:center; color:#555; font-size:14px; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2>भावेश्वरी दूध संस्था — Admin</h2>
+  <input type="text" id="farmerUID" placeholder="Farmer UID (Firebase मधून)" />
+  <input type="date" id="date" />
+  <input type="number" id="dayLitres" placeholder="दिवसाचे लिटर" />
+  <input type="number" id="dayAmount" placeholder="दिवसाची रक्कम ₹" />
+  <input type="number" id="nightLitres" placeholder="रात्रीचे लिटर" />
+  <input type="number" id="nightAmount" placeholder="रात्रीची रक्कम ₹" />
+  <select id="paymentStatus">
+    <option value="Pending">Pending</option>
+    <option value="Paid">Paid</option>
+  </select>
+  <button onclick="saveRecord()">Save Record</button>
+  <p id="msg"></p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, update, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDAPIylSFOKGA6Tpu8kmn2otF4L0SpQh6g",
+  authDomain: "mcollections-22e3f.firebaseapp.com",
+  databaseURL: "https://mcollections-22e3f-default-rtdb.firebaseio.com",
+  projectId: "mcollections-22e3f",
+  storageBucket: "mcollections-22e3f.firebasestorage.app",
+  messagingSenderId: "798498490029",
+  appId: "1:798498490029:web:86db83ee562a2d2f12e824",
+  measurementId: "G-5LEYGZJQCY"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.saveRecord = async function(){
+  const uid = document.getElementById('farmerUID').value.trim();
+  const date = document.getElementById('date').value;
+  const dayL = document.getElementById('dayLitres').value || 0;
+  const dayA = document.getElementById('dayAmount').value || 0;
+  const nightL = document.getElementById('nightLitres').value || 0;
+  const nightA = document.getElementById('nightAmount').value || 0;
+  const pay = document.getElementById('paymentStatus').value;
+  const msg = document.getElementById('msg');
+
+  if(!uid || !date){ msg.innerText = "कृपया UID आणि दिनांक भरा"; return; }
+
+  const farmerRef = ref(db, 'farmers/' + uid + '/records/' + date);
+  const data = {
+    day: { litres:Number(dayL), amount:Number(dayA) },
+    night: { litres:Number(nightL), amount:Number(nightA) },
+    payment_status: pay
+  };
+
+  await update(farmerRef, data);
+  msg.innerText = "रेकॉर्ड सेव्ह झाले ✅";
+};
+</script>
+</body>
+</html>
