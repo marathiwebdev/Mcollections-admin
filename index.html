@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>भावेश्वरी दूध संस्था Admin</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    input {
+      padding: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #statusMsg {
+      color: green;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mcollections Admin</h1>
+
+  <div class="form">
+    <label>Farmer ID:</label>
+    <input type="number" id="farmerId" placeholder="Enter Farmer ID">
+
+    <h3>Morning Collection</h3>
+    <input type="number" id="morningLiters" placeholder="Liters">
+    <input type="number" id="morningRate" placeholder="Rate">
+
+    <h3>Night Collection</h3>
+    <input type="number" id="nightLiters" placeholder="Liters">
+    <input type="number" id="nightRate" placeholder="Rate">
+
+    <button id="saveBtn">Save Record</button>
+  </div>
+
+  <p id="statusMsg"></p>
+
+  <!-- Firebase + Script -->
+  <script type="module">
+    // ✅ Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ✅ Your Firebase Config (Replace with your own details)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // ✅ Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ✅ Save Record Logic
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      const farmerId = document.getElementById("farmerId").value.trim();
+      const morningLiters = document.getElementById("morningLiters").value.trim();
+      const morningRate = document.getElementById("morningRate").value.trim();
+      const nightLiters = document.getElementById("nightLiters").value.trim();
+      const nightRate = document.getElementById("nightRate").value.trim();
+
+      if (!farmerId) {
+        alert("Please enter Farmer ID");
+        return;
+      }
+
+      const farmerEmail = `${farmerId}@farmers.com`;
+
+      const farmerRef = ref(db, `farmers/${farmerEmail.replace(".", "_")}/milkRecords`);
+      const record = {
+        date: new Date().toLocaleDateString(),
+        morning: { liters: morningLiters, rate: morningRate },
+        night: { liters: nightLiters, rate: nightRate },
+      };
+
+      try {
+        const newRecordRef = push(farmerRef);
+        await set(newRecordRef, record);
+        document.getElementById("statusMsg").textContent = "✅ Record saved successfully!";
+        // Clear fields
+        document.getElementById("morningLiters").value = "";
+        document.getElementById("morningRate").value = "";
+        document.getElementById("nightLiters").value = "";
+        document.getElementById("nightRate").value = "";
+      } catch (err) {
+        console.error(err);
+        alert("❌ Error saving record: " + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
